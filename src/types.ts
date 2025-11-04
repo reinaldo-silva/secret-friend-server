@@ -4,13 +4,14 @@ export interface Participant {
   id: Id;
   name: string;
   isAdmin?: boolean;
+  socketId?: string;
 }
 
 export interface Room {
   id: string;
   name?: string;
   adminId: Id;
-  participants: Map<Id, Participant>;
+  participants: Participant[];
 }
 
 export type IncomingMessage =
