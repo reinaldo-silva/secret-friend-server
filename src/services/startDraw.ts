@@ -1,9 +1,13 @@
+import { INotifierProvider } from "../providers/INotifierProvider";
 import { RoomRepository } from "../repositories/RoomRepository";
 import { Participant } from "../types";
 import { AppError } from "../utils/AppError";
 
 export class StarDrawService {
-  constructor(private roomRepository: RoomRepository) {}
+  constructor(
+    private roomRepository: RoomRepository,
+    private notifier: INotifierProvider
+  ) {}
 
   async handle(roomId: string, adminId: string) {
     const room = await this.roomRepository.findRoom(roomId);
@@ -27,7 +31,22 @@ export class StarDrawService {
       throw new AppError("could_not_generate_mapping");
     }
 
-    return mapping;
+    // Envia o resultado individual
+    for (const { from, to } of mapping) {
+      if (from.socketId) {
+        this.notifier.send(from.socketId, { type: "your_match", match: to });
+      }
+    }
+
+    // Envia o mapeamento completo ao admin - REMOVER DEPOIS
+    const adminSocketId = mapping.find(({ from }) => from.id === adminId)?.from
+      .socketId;
+
+    if (adminSocketId) {
+      this.notifier.send(adminSocketId, { type: "draw_result_admin", mapping });
+    }
+
+    console.log(`🎲 Draw executed on room ${roomId} by ${adminId}`);
   }
 
   private shuffle<T>(arr: T[]): T[] {

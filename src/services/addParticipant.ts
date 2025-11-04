@@ -1,8 +1,12 @@
+import { INotifierProvider } from "../providers/INotifierProvider";
 import { RoomRepository } from "../repositories/RoomRepository";
 import { AppError } from "../utils/AppError";
 
 export class AddParticipantService {
-  constructor(private roomRepository: RoomRepository) {}
+  constructor(
+    private roomRepository: RoomRepository,
+    private notifier: INotifierProvider
+  ) {}
 
   async handle(
     roomId: string,
@@ -33,6 +37,11 @@ export class AddParticipantService {
 
     await this.roomRepository.updateRoom(roomId, room);
 
-    return { room, participant: newParticipant };
+    this.notifier.sendMessageToRoom(roomId, {
+      type: "participant_added",
+      participant: newParticipant,
+    });
+
+    console.log(`➕ Admin ${adminId} added ${name} to room ${roomId}`);
   }
 }

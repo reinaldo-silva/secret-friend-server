@@ -1,8 +1,12 @@
+import { INotifierProvider } from "../providers/INotifierProvider";
 import { RoomRepository } from "../repositories/RoomRepository";
 import { AppError } from "../utils/AppError";
 
 export class BroadcastService {
-  constructor(private roomRepository: RoomRepository) {}
+  constructor(
+    private roomRepository: RoomRepository,
+    private notifier: INotifierProvider
+  ) {}
 
   async handle(roomId: string, message: string, adminId: string) {
     const room = await this.roomRepository.findRoom(roomId);
@@ -17,6 +21,12 @@ export class BroadcastService {
       throw new AppError("admin_not_in_room");
     }
 
-    return { room, admin };
+    this.notifier.sendMessageToRoom(roomId, {
+      type: "broadcast",
+      from: admin,
+      message,
+    });
+
+    console.log(`📢 Broadcast in ${roomId}: ${message}`);
   }
 }

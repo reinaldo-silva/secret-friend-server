@@ -1,8 +1,12 @@
+import { INotifierProvider } from "../providers/INotifierProvider";
 import { RoomRepository } from "../repositories/RoomRepository";
 import { AppError } from "../utils/AppError";
 
 export class CreateRoomService {
-  constructor(private roomRepository: RoomRepository) {}
+  constructor(
+    private roomRepository: RoomRepository,
+    private notifier: INotifierProvider
+  ) {}
 
   async handle(
     roomId: string,
@@ -23,6 +27,18 @@ export class CreateRoomService {
       participants: [{ id: adminId, name: adminName, isAdmin: true, socketId }],
     };
 
-    return await this.roomRepository.newRoom(room.id, room);
+    const newRoom = await this.roomRepository.newRoom(room.id, room);
+
+    this.notifier.joinParticipantRoom(socketId, roomId);
+
+    this.notifier.send(socketId, { type: "room_created", roomId });
+
+    this.notifier.send(socketId, {
+      type: "joined",
+      roomId,
+      participants: newRoom.participants,
+    });
+
+    console.log(`🏠 Room ${roomId} created by ${adminName}`);
   }
 }

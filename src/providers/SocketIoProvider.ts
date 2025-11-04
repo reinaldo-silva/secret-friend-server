@@ -1,5 +1,6 @@
 import http from "http";
 import { Server, Socket } from "socket.io";
+import { RoomRepository } from "../repositories/RoomRepository";
 import { AddParticipantService } from "../services/addParticipant";
 import { BroadcastService } from "../services/broadcast";
 import { CreateRoomService } from "../services/createRoom";
@@ -8,21 +9,17 @@ import { LeaveRoomService } from "../services/leaveRoom";
 import { StarDrawService } from "../services/startDraw";
 import { IncomingMessage, OutgoingMessage } from "../types";
 import { AppError } from "../utils/AppError";
+import { INotifierProvider } from "./INotifierProvider";
 
-export class SocketIoProvider {
+export class SocketIoProvider implements INotifierProvider {
   client: Server;
 
-  constructor(
-    server: http.Server,
-    createRoomService: CreateRoomService,
-    joinRoomService: JoinRoomService,
-    addParticipantService: AddParticipantService,
-    leaveRoomService: LeaveRoomService,
-    broadcastService: BroadcastService,
-    starDrawService: StarDrawService
-  ) {
+  constructor(server: http.Server, roomRepository: RoomRepository) {
     const io = new Server(server, {
-      cors: { origin: "*" },
+      cors: {
+        origin:
+          process.env.ENV === "development" ? "*" : process.env.FRONTEND_URL,
+      },
     });
 
     io.on("connection", (socket: Socket) => {
@@ -41,14 +38,19 @@ export class SocketIoProvider {
           }
 
           if (msg.type === "ping") {
-            this.send(socket, { type: "pong" });
+            this.send(socket.id, { type: "pong" });
             return;
           }
 
           if (msg.type === "create_room") {
             const { roomId, roomName, adminId, adminName } = msg;
 
-            const newRoom = await createRoomService.handle(
+            const createRoomService = new CreateRoomService(
+              roomRepository,
+              this
+            );
+
+            await createRoomService.handle(
               roomId,
               roomName || "Room_Name_Default",
               adminId,
@@ -56,44 +58,15 @@ export class SocketIoProvider {
               socket.id
             );
 
-            socket.join(roomId);
-
-            this.send(socket, { type: "room_created", roomId });
-            this.send(socket, {
-              type: "joined",
-              roomId,
-              participants: newRoom.participants,
-            });
-            console.log(`🏠 Room ${roomId} created by ${adminName}`);
-
             return;
           }
 
           if (msg.type === "join_room") {
             const { roomId, clientId, name } = msg;
 
-            const { room, participant } = await joinRoomService.handle(
-              roomId,
-              clientId,
-              name,
-              socket.id
-            );
+            const joinRoomService = new JoinRoomService(roomRepository, this);
 
-            socket.join(roomId);
-
-            // Envia os participantes atuais para o novo usuário
-            this.send(socket, {
-              type: "joined",
-              roomId,
-              participants: room.participants,
-            });
-
-            // Notifica todos da sala
-            this.sendMessageToRoom(roomId, {
-              type: "participant_added",
-              participant,
-            });
-            console.log(`👤 ${name} joined room ${roomId}`);
+            await joinRoomService.handle(roomId, clientId, name, socket.id);
 
             return;
           }
@@ -101,88 +74,59 @@ export class SocketIoProvider {
           if (msg.type === "add_participant") {
             const { roomId, adminId, participantId, name } = msg;
 
-            const { participant } = await addParticipantService.handle(
+            const addParticipantService = new AddParticipantService(
+              roomRepository,
+              this
+            );
+
+            await addParticipantService.handle(
               roomId,
               adminId,
               participantId,
               name
             );
 
-            this.sendMessageToRoom(roomId, {
-              type: "participant_added",
-              participant,
-            });
-            console.log(`➕ Admin ${adminId} added ${name} to room ${roomId}`);
             return;
           }
 
           if (msg.type === "leave_room") {
             const { roomId, clientId } = msg;
 
+            const leaveRoomService = new LeaveRoomService(roomRepository, this);
+
             await leaveRoomService.handle(roomId, clientId);
 
-            socket.leave(roomId);
-
-            this.sendMessageToRoom(roomId, {
-              type: "left",
-              roomId,
-              clientId,
-            });
-            console.log(`👋 Client ${clientId} left room ${roomId}`);
             return;
           }
 
           if (msg.type === "broadcast") {
             const { roomId, adminId, message } = msg;
 
-            const { admin } = await broadcastService.handle(
-              roomId,
-              message,
-              adminId
-            );
+            const broadcastService = new BroadcastService(roomRepository, this);
 
-            this.sendMessageToRoom(roomId, {
-              type: "broadcast",
-              from: admin,
-              message,
-            });
-            console.log(`📢 Broadcast in ${roomId}: ${message}`);
+            await broadcastService.handle(roomId, message, adminId);
+
             return;
           }
 
           if (msg.type === "start_draw") {
             const { roomId, adminId } = msg;
 
-            const mapping = await starDrawService.handle(roomId, adminId);
+            const starDrawService = new StarDrawService(roomRepository, this);
 
-            // Envia o resultado individual
-            for (const { from, to } of mapping) {
-              const targetSocket = this.getSocketById(from.socketId);
-              if (targetSocket) {
-                this.send(targetSocket, { type: "your_match", match: to });
-              }
-            }
+            await starDrawService.handle(roomId, adminId);
 
-            // Envia o mapeamento completo ao admin
-            const adminSocket = this.getSocketById(
-              mapping.find(({ from }) => from.id === adminId)?.from.socketId
-            );
-            if (adminSocket) {
-              this.send(adminSocket, { type: "draw_result_admin", mapping });
-            }
-
-            console.log(`🎲 Draw executed on room ${roomId} by ${adminId}`);
             return;
           }
 
           throw new AppError("unknown_message_type");
         } catch (err) {
           if (err instanceof AppError) {
-            return this.makeError(socket, err.message);
+            return this.makeError(socket.id, err.message);
           }
 
           console.error("Error handling message:", err);
-          this.makeError(socket, "internal_server_error");
+          this.makeError(socket.id, "internal_server_error");
         }
       });
     });
@@ -190,12 +134,31 @@ export class SocketIoProvider {
     this.client = io;
   }
 
-  makeError(socket: Socket, message: string) {
-    console.log("❗ Error:", message);
-    this.send(socket, { type: "error", message });
+  leaveParticipantRoom(socketId: string, roomId: string) {
+    const socket = this.getSocketById(socketId);
+    if (!socket) {
+      console.error("Socket not found for leaveParticipantRoom:", socketId);
+      return;
+    }
+    socket.leave(roomId);
   }
 
-  send(socket: Socket, payload: OutgoingMessage) {
+  makeError(socketId: string, message: string) {
+    console.log("❗ Error:", message);
+    const socket = this.getSocketById(socketId);
+    if (!socket) {
+      console.error("Socket not found for makeError:", socketId);
+      return;
+    }
+    this.send(socket.id, { type: "error", message });
+  }
+
+  send(socketId: string, payload: OutgoingMessage) {
+    const socket = this.getSocketById(socketId);
+    if (!socket) {
+      console.error("Socket not found for send:", socketId);
+      return;
+    }
     try {
       socket.emit("message", payload);
     } catch (err) {
@@ -207,7 +170,16 @@ export class SocketIoProvider {
     this.client.to(roomId).emit("message", payload);
   }
 
-  getSocketById(socketId: string | undefined): Socket | null {
+  joinParticipantRoom(socketId: string, roomId: string) {
+    const socket = this.getSocketById(socketId);
+    if (!socket) {
+      console.error("Socket not found for joinParticipantRoom:", socketId);
+      return;
+    }
+    socket.join(roomId);
+  }
+
+  private getSocketById(socketId: string | undefined): Socket | null {
     if (!socketId) return null;
     const socket = this.client.sockets.sockets.get(socketId);
     return socket || null;
