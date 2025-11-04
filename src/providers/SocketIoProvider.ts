@@ -72,7 +72,7 @@ export class SocketIoProvider {
           if (msg.type === "join_room") {
             const { roomId, clientId, name } = msg;
 
-            const room = await joinRoomService.handle(
+            const { room, participant } = await joinRoomService.handle(
               roomId,
               clientId,
               name,
@@ -89,9 +89,9 @@ export class SocketIoProvider {
             });
 
             // Notifica todos da sala
-            io.to(roomId).emit("message", {
+            this.sendMessageToRoom(roomId, {
               type: "participant_added",
-              participant: room.participants,
+              participant,
             });
             console.log(`👤 ${name} joined room ${roomId}`);
 
@@ -101,16 +101,16 @@ export class SocketIoProvider {
           if (msg.type === "add_participant") {
             const { roomId, adminId, participantId, name } = msg;
 
-            const room = await addParticipantService.handle(
+            const { participant } = await addParticipantService.handle(
               roomId,
               adminId,
               participantId,
               name
             );
 
-            io.to(roomId).emit("message", {
+            this.sendMessageToRoom(roomId, {
               type: "participant_added",
-              participant: room.participants,
+              participant,
             });
             console.log(`➕ Admin ${adminId} added ${name} to room ${roomId}`);
             return;
@@ -123,7 +123,11 @@ export class SocketIoProvider {
 
             socket.leave(roomId);
 
-            io.to(roomId).emit("message", { type: "left", roomId, clientId });
+            this.sendMessageToRoom(roomId, {
+              type: "left",
+              roomId,
+              clientId,
+            });
             console.log(`👋 Client ${clientId} left room ${roomId}`);
             return;
           }
@@ -137,7 +141,7 @@ export class SocketIoProvider {
               adminId
             );
 
-            io.to(roomId).emit("message", {
+            this.sendMessageToRoom(roomId, {
               type: "broadcast",
               from: admin,
               message,
@@ -197,6 +201,10 @@ export class SocketIoProvider {
     } catch (err) {
       console.error("send error", err);
     }
+  }
+
+  sendMessageToRoom(roomId: string, payload: OutgoingMessage) {
+    this.client.to(roomId).emit("message", payload);
   }
 
   getSocketById(socketId: string | undefined): Socket | null {

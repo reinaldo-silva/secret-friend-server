@@ -21,8 +21,10 @@ export class JoinRoomService {
       throw new AppError("client_id_already_in_room");
     }
 
-    room.participants.push({ id: clientId, name, socketId });
+    const newParticipant = { id: clientId, name, socketId };
 
-    return room;
+    room.participants.push(newParticipant);
+
+    return { room, participant: newParticipant };
   }
 }

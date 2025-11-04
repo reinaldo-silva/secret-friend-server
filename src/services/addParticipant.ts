@@ -28,10 +28,11 @@ export class AddParticipantService {
       throw new AppError("participant_already_exists");
     }
 
-    room.participants.push({ id: participantId, name: participantName });
+    const newParticipant = { id: participantId, name: participantName };
+    room.participants.push(newParticipant);
 
     await this.roomRepository.updateRoom(roomId, room);
 
-    return room;
+    return { room, participant: newParticipant };
   }
 }
