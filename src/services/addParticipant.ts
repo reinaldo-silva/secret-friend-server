@@ -42,6 +42,8 @@ export class AddParticipantService {
       participant: newParticipant,
     });
 
-    console.log(`➕ Admin ${adminId} added ${name} to room ${roomId}`);
+    console.log(
+      `➕ Admin ${adminId} added ${participantName} to room ${roomId}`
+    );
   }
 }

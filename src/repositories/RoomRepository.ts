@@ -23,7 +23,7 @@ export class RoomRepository {
   }
 
   async updateRoom(roomId: string, update: Room) {
-    const current = await this.databaseProvider.getData(roomId);
+    const current = await this.databaseProvider.getData(`room:${roomId}`);
     if (!current) throw new Error("Room not found");
 
     await this.databaseProvider.setData(
