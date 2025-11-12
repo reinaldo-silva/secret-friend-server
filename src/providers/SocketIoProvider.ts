@@ -4,6 +4,7 @@ import { RoomRepository } from "../repositories/RoomRepository";
 import { AddParticipantService } from "../services/addParticipant";
 import { BroadcastService } from "../services/broadcast";
 import { CreateRoomService } from "../services/createRoom";
+import { GetRoomById } from "../services/getRoomById";
 import { JoinRoomService } from "../services/joinRoom";
 import { LeaveRoomService } from "../services/leaveRoom";
 import { StarDrawService } from "../services/startDraw";
@@ -115,6 +116,16 @@ export class SocketIoProvider implements INotifierProvider {
             const starDrawService = new StarDrawService(roomRepository, this);
 
             await starDrawService.handle(roomId, adminId);
+
+            return;
+          }
+
+          if (msg.type === "get_room_by_id") {
+            const { roomId, adminId } = msg;
+
+            const getRoomById = new GetRoomById(roomRepository, this);
+
+            await getRoomById.handle(roomId, adminId, socket.id);
 
             return;
           }

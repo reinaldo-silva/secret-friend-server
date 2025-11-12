@@ -33,7 +33,8 @@ export type IncomingMessage =
   | { type: "start_draw"; roomId: string; adminId: Id }
   | { type: "leave_room"; roomId: string; clientId: Id }
   | { type: "ping" }
-  | { type: "broadcast"; roomId: string; adminId: Id; message: string };
+  | { type: "broadcast"; roomId: string; adminId: Id; message: string }
+  | { type: "get_room_by_id"; roomId: string; adminId: Id };
 
 export type OutgoingMessage =
   | { type: "error"; message: string }
@@ -47,4 +48,5 @@ export type OutgoingMessage =
     }
   | { type: "left"; roomId: string; clientId: Id }
   | { type: "pong" }
-  | { type: "broadcast"; from: Participant; message: string };
+  | { type: "broadcast"; from: Participant; message: string }
+  | { type: "room_found"; room: Room };
