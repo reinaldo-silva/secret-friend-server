@@ -21,7 +21,7 @@ export class JoinRoomService {
       (p) => p.id === clientId
     );
 
-    const newParticipant = { id: clientId, name, socketId };
+    const newParticipant = { id: clientId, name };
 
     if (!participantAlreadyExists) {
       room.participants.push(newParticipant);

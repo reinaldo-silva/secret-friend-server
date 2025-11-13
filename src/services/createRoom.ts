@@ -1,5 +1,6 @@
 import { INotifierProvider } from "../providers/INotifierProvider";
 import { RoomRepository } from "../repositories/RoomRepository";
+import { Room } from "../types";
 import { AppError } from "../utils/AppError";
 
 export class CreateRoomService {
@@ -20,11 +21,12 @@ export class CreateRoomService {
       throw new AppError("room_already_exists");
     }
 
-    const room = {
+    const room: Room = {
       id: roomId,
       name: roomName,
       adminId,
       participants: [{ id: adminId, name: adminName, isAdmin: true, socketId }],
+      alreadyDraw: false,
     };
 
     const newRoom = await this.roomRepository.newRoom(room.id, room);

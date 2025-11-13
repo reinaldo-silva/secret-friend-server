@@ -1,11 +1,13 @@
 import { INotifierProvider } from "../providers/INotifierProvider";
 import { RoomRepository } from "../repositories/RoomRepository";
-import { Participant } from "../types";
+import { UserRepository } from "../repositories/UserRepository";
+import { User } from "../types";
 import { AppError } from "../utils/AppError";
 
 export class StarDrawService {
   constructor(
     private roomRepository: RoomRepository,
+    private userRepository: UserRepository,
     private notifier: INotifierProvider
   ) {}
 
@@ -25,11 +27,21 @@ export class StarDrawService {
       throw new AppError("need_at_least_two_participants");
     }
 
-    const mapping = this.generateValidMapping(participants);
+    const allParticipantsIds = participants.map((e) => e.id);
+
+    const allParticipants = await this.userRepository.listAllById(
+      allParticipantsIds
+    );
+
+    const mapping = this.generateValidMapping(allParticipants);
 
     if (!mapping) {
       throw new AppError("could_not_generate_mapping");
     }
+
+    Object.assign(room, { alreadyDraw: true });
+
+    await this.roomRepository.updateRoom(roomId, room);
 
     // Envia o resultado individual
     for (const { from, to } of mapping) {
@@ -59,8 +71,8 @@ export class StarDrawService {
   }
 
   private generateValidMapping(
-    participants: Participant[]
-  ): { from: Participant; to: Participant }[] | null {
+    participants: User[]
+  ): { from: User; to: User }[] | null {
     const n = participants.length;
 
     const MAX_ATTEMPTS = 2000;
@@ -75,7 +87,7 @@ export class StarDrawService {
         }
       }
       if (valid) {
-        const mapping: { from: Participant; to: Participant }[] = [];
+        const mapping: { from: User; to: User }[] = [];
         for (let i = 0; i < n; i++)
           mapping.push({ from: participants[i], to: shuffled[i] });
         return mapping;

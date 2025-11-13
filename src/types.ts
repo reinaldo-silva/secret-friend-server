@@ -1,6 +1,6 @@
 export type Id = string;
 
-export interface Participant {
+export interface User {
   id: Id;
   name: string;
   isAdmin?: boolean;
@@ -11,10 +11,12 @@ export interface Room {
   id: string;
   name?: string;
   adminId: Id;
-  participants: Participant[];
+  participants: User[];
+  alreadyDraw: boolean;
 }
 
 export type IncomingMessage =
+  | { type: "connect_server"; user: User }
   | {
       type: "create_room";
       roomId: string;
@@ -39,14 +41,14 @@ export type IncomingMessage =
 export type OutgoingMessage =
   | { type: "error"; message: string }
   | { type: "room_created"; roomId: string }
-  | { type: "joined"; roomId: string; participants: Participant[] }
-  | { type: "participant_added"; participant: Participant }
-  | { type: "your_match"; match: Participant }
+  | { type: "joined"; roomId: string; participants: User[] }
+  | { type: "participant_added"; participant: User }
+  | { type: "your_match"; match: User }
   | {
       type: "draw_result_admin";
-      mapping: { from: Participant; to: Participant }[];
+      mapping: { from: User; to: User }[];
     }
   | { type: "left"; roomId: string; clientId: Id }
   | { type: "pong" }
-  | { type: "broadcast"; from: Participant; message: string }
+  | { type: "broadcast"; from: User; message: string }
   | { type: "room_found"; room: Room };

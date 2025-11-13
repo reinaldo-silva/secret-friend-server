@@ -1,8 +1,10 @@
 import http from "http";
 import { Server, Socket } from "socket.io";
 import { RoomRepository } from "../repositories/RoomRepository";
+import { UserRepository } from "../repositories/UserRepository";
 import { AddParticipantService } from "../services/addParticipant";
 import { BroadcastService } from "../services/broadcast";
+import { ConnectNotification } from "../services/connectNotification";
 import { CreateRoomService } from "../services/createRoom";
 import { GetRoomById } from "../services/getRoomById";
 import { JoinRoomService } from "../services/joinRoom";
@@ -15,7 +17,11 @@ import { INotifierProvider } from "./INotifierProvider";
 export class SocketIoProvider implements INotifierProvider {
   client: Server;
 
-  constructor(server: http.Server, roomRepository: RoomRepository) {
+  constructor(
+    server: http.Server,
+    roomRepository: RoomRepository,
+    userRepository: UserRepository
+  ) {
     const io = new Server(server, {
       cors: {
         origin:
@@ -36,6 +42,16 @@ export class SocketIoProvider implements INotifierProvider {
         try {
           if (!msg || typeof msg !== "object" || !("type" in msg)) {
             throw new AppError("invalid_message");
+          }
+
+          if (msg.type === "connect_server") {
+            const { user } = msg;
+
+            const connectNotification = new ConnectNotification(userRepository);
+
+            await connectNotification.handler(user, socket.id);
+
+            return;
           }
 
           if (msg.type === "ping") {
@@ -113,7 +129,11 @@ export class SocketIoProvider implements INotifierProvider {
           if (msg.type === "start_draw") {
             const { roomId, adminId } = msg;
 
-            const starDrawService = new StarDrawService(roomRepository, this);
+            const starDrawService = new StarDrawService(
+              roomRepository,
+              userRepository,
+              this
+            );
 
             await starDrawService.handle(roomId, adminId);
 
