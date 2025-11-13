@@ -21,13 +21,19 @@ export class JoinRoomService {
       (p) => p.id === clientId
     );
 
-    if (participantAlreadyExists) {
-      throw new AppError("client_id_already_in_room");
-    }
-
     const newParticipant = { id: clientId, name, socketId };
 
-    room.participants.push(newParticipant);
+    if (!participantAlreadyExists) {
+      room.participants.push(newParticipant);
+
+      await this.roomRepository.updateRoom(roomId, room);
+
+      // Notifica todos da sala
+      this.notifier.sendMessageToRoom(roomId, {
+        type: "participant_added",
+        participant: newParticipant,
+      });
+    }
 
     this.notifier.joinParticipantRoom(socketId, roomId);
 
@@ -36,12 +42,6 @@ export class JoinRoomService {
       type: "joined",
       roomId,
       participants: room.participants,
-    });
-
-    // Notifica todos da sala
-    this.notifier.sendMessageToRoom(roomId, {
-      type: "participant_added",
-      participant: newParticipant,
     });
 
     console.log(`👤 ${name} joined room ${roomId}`);

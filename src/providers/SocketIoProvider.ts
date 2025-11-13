@@ -121,11 +121,11 @@ export class SocketIoProvider implements INotifierProvider {
           }
 
           if (msg.type === "get_room_by_id") {
-            const { roomId, adminId } = msg;
+            const { roomId } = msg;
 
             const getRoomById = new GetRoomById(roomRepository, this);
 
-            await getRoomById.handle(roomId, adminId, socket.id);
+            await getRoomById.handle(roomId, socket.id);
 
             return;
           }

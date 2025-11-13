@@ -34,7 +34,7 @@ export type IncomingMessage =
   | { type: "leave_room"; roomId: string; clientId: Id }
   | { type: "ping" }
   | { type: "broadcast"; roomId: string; adminId: Id; message: string }
-  | { type: "get_room_by_id"; roomId: string; adminId: Id };
+  | { type: "get_room_by_id"; roomId: string };
 
 export type OutgoingMessage =
   | { type: "error"; message: string }
