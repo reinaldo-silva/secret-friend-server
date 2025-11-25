@@ -26,7 +26,6 @@ export class CreateRoomService {
       name: roomName,
       adminId,
       participants: [{ id: adminId, name: adminName, isAdmin: true, socketId }],
-      alreadyDraw: false,
     };
 
     const newRoom = await this.roomRepository.newRoom(room.id, room);

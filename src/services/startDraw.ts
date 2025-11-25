@@ -39,20 +39,24 @@ export class StarDrawService {
       throw new AppError("could_not_generate_mapping");
     }
 
-    Object.assign(room, { alreadyDraw: true });
+    Object.assign(room, { secretList: mapping });
 
     await this.roomRepository.updateRoom(roomId, room);
 
     // Envia o resultado individual
-    for (const { from, to } of mapping) {
-      if (from.socketId) {
-        this.notifier.send(from.socketId, { type: "your_match", match: to });
+    for (const user of allParticipants) {
+      if (user.socketId) {
+        this.notifier.send(user.socketId, {
+          type: "your_match",
+          match: mapping[user.id],
+        });
       }
     }
 
     // Envia o mapeamento completo ao admin - REMOVER DEPOIS
-    const adminSocketId = mapping.find(({ from }) => from.id === adminId)?.from
-      .socketId;
+    const adminSocketId = allParticipants.find(
+      (user) => user.id === adminId
+    )?.socketId;
 
     if (adminSocketId) {
       this.notifier.send(adminSocketId, { type: "draw_result_admin", mapping });
@@ -72,7 +76,7 @@ export class StarDrawService {
 
   private generateValidMapping(
     participants: User[]
-  ): { from: User; to: User }[] | null {
+  ): Record<string, User> | null {
     const n = participants.length;
 
     const MAX_ATTEMPTS = 2000;
@@ -87,9 +91,10 @@ export class StarDrawService {
         }
       }
       if (valid) {
-        const mapping: { from: User; to: User }[] = [];
-        for (let i = 0; i < n; i++)
-          mapping.push({ from: participants[i], to: shuffled[i] });
+        const mapping: Record<string, User> = {};
+        for (let i = 0; i < n; i++) {
+          mapping[participants[i].id] = shuffled[i];
+        }
         return mapping;
       }
     }

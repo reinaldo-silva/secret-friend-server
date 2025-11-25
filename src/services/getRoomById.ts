@@ -8,16 +8,33 @@ export class GetRoomById {
     private notifier: INotifierProvider
   ) {}
 
-  async handle(roomId: string, socketId: string) {
+  async handle(roomId: string, socketId: string, userId: string) {
     const roomFound = await this.roomRepository.findRoom(roomId);
     if (!roomFound) {
       throw new AppError("room_not_found");
     }
 
+    const { adminId, id, participants, name, secretList } = roomFound;
+
     this.notifier.send(socketId, {
       type: "room_found",
-      room: roomFound,
+      room: { adminId, id, participants, name },
     });
+
+    // Envia o resultado individual e os resultados para o admin
+    if (secretList) {
+      this.notifier.send(socketId, {
+        type: "your_match",
+        match: secretList[userId],
+      });
+
+      if (userId === adminId) {
+        this.notifier.send(socketId, {
+          type: "draw_result_admin",
+          mapping: secretList,
+        });
+      }
+    }
 
     this.notifier.joinParticipantRoom(socketId, roomId);
   }
