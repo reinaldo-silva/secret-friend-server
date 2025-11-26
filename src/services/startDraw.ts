@@ -1,3 +1,4 @@
+import jwt from "jsonwebtoken";
 import { INotifierProvider } from "../providers/INotifierProvider";
 import { RoomRepository } from "../repositories/RoomRepository";
 import { UserRepository } from "../repositories/UserRepository";
@@ -48,7 +49,7 @@ export class StarDrawService {
       if (user.socketId) {
         this.notifier.send(user.socketId, {
           type: "your_match",
-          match: mapping[user.id],
+          token: mapping[user.id],
         });
       }
     }
@@ -76,7 +77,7 @@ export class StarDrawService {
 
   private generateValidMapping(
     participants: User[]
-  ): Record<string, User> | null {
+  ): Record<string, string> | null {
     const n = participants.length;
 
     const MAX_ATTEMPTS = 2000;
@@ -91,9 +92,17 @@ export class StarDrawService {
         }
       }
       if (valid) {
-        const mapping: Record<string, User> = {};
+        const mapping: Record<string, string> = {};
         for (let i = 0; i < n; i++) {
-          mapping[participants[i].id] = shuffled[i];
+          const token = jwt.sign(
+            {
+              from: participants[i].id,
+              to: shuffled[i].id,
+            },
+            process.env.JWT_SECRET || "your-secret-key",
+            { expiresIn: "7d" }
+          );
+          mapping[participants[i].id] = token;
         }
         return mapping;
       }

@@ -15,10 +15,12 @@
   "dependencies": {
     "@upstash/redis": "^1.35.6",
     "dotenv": "^17.2.3",
+    "jsonwebtoken": "^9.0.2",
     "socket.io": "^4.8.1",
     "ws": "^8.13.0"
   },
   "devDependencies": {
+    "@types/jsonwebtoken": "^9.0.10",
     "@types/ws": "^8.5.4",
     "@typescript-eslint/eslint-plugin": "^6.9.0",
     "@typescript-eslint/parser": "^6.9.0",

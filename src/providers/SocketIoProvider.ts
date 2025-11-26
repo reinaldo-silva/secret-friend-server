@@ -6,6 +6,7 @@ import { AddParticipantService } from "../services/addParticipant";
 import { BroadcastService } from "../services/broadcast";
 import { ConnectNotification } from "../services/connectNotification";
 import { CreateRoomService } from "../services/createRoom";
+import { GetResultByToken } from "../services/getResultByToken";
 import { GetRoomById } from "../services/getRoomById";
 import { JoinRoomService } from "../services/joinRoom";
 import { LeaveRoomService } from "../services/leaveRoom";
@@ -146,6 +147,16 @@ export class SocketIoProvider implements INotifierProvider {
             const getRoomById = new GetRoomById(roomRepository, this);
 
             await getRoomById.handle(roomId, socket.id, clientId);
+
+            return;
+          }
+
+          if (msg.type === "get_result_by_token") {
+            const { roomId, token } = msg;
+
+            const getResultByToken = new GetResultByToken(roomRepository, this);
+
+            await getResultByToken.handle(roomId, socket.id, token);
 
             return;
           }

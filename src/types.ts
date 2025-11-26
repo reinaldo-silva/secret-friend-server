@@ -12,7 +12,7 @@ export interface Room {
   name?: string;
   adminId: Id;
   participants: User[];
-  secretList?: Record<string, User>;
+  secretList?: Record<string, string>;
 }
 
 export type IncomingMessage =
@@ -36,17 +36,19 @@ export type IncomingMessage =
   | { type: "leave_room"; roomId: string; clientId: Id }
   | { type: "ping" }
   | { type: "broadcast"; roomId: string; adminId: Id; message: string }
-  | { type: "get_room_by_id"; roomId: string; clientId: string };
+  | { type: "get_room_by_id"; roomId: string; clientId: string }
+  | { type: "get_result_by_token"; roomId: string; token: string };
 
 export type OutgoingMessage =
   | { type: "error"; message: string }
   | { type: "room_created"; roomId: string }
   | { type: "joined"; roomId: string; participants: User[] }
   | { type: "participant_added"; participant: User }
-  | { type: "your_match"; match: User }
+  | { type: "your_match"; token: string }
+  | { type: "result"; toName: string; fromName: string }
   | {
       type: "draw_result_admin";
-      mapping: Record<string, User>;
+      mapping: Record<string, string>;
     }
   | { type: "left"; roomId: string; clientId: Id }
   | { type: "pong" }

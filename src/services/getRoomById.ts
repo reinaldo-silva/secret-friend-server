@@ -25,7 +25,7 @@ export class GetRoomById {
     if (secretList) {
       this.notifier.send(socketId, {
         type: "your_match",
-        match: secretList[userId],
+        token: secretList[userId],
       });
 
       if (userId === adminId) {
