@@ -15,7 +15,14 @@ export class JoinRoomService {
     socketId: string
   ) {
     const room = await this.roomRepository.findRoom(roomId);
-    if (!room) throw new AppError("room_not_found");
+
+    if (!room) {
+      throw new AppError("room_not_found");
+    }
+
+    if (room.secretList) {
+      throw new AppError("room_already_draw");
+    }
 
     const participantAlreadyExists = room.participants.find(
       (p) => p.id === clientId

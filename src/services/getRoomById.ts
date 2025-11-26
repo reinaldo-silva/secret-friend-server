@@ -14,6 +14,14 @@ export class GetRoomById {
       throw new AppError("room_not_found");
     }
 
+    const userIsParticipant = roomFound.participants.some(
+      (p) => p.id === userId
+    );
+
+    if (!userIsParticipant) {
+      throw new AppError("user_not_participant");
+    }
+
     const { adminId, id, participants, name, secretList } = roomFound;
 
     this.notifier.send(socketId, {

@@ -24,6 +24,10 @@ export class AddParticipantService {
       throw new AppError("only_admin_can_add");
     }
 
+    if (room.secretList) {
+      throw new AppError("room_already_draw");
+    }
+
     const participantAlreadyExists = room.participants.find(
       (p) => p.id === participantId
     );
