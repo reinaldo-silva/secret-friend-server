@@ -50,7 +50,7 @@ export type OutgoingMessage =
       type: "draw_result_admin";
       mapping: Record<string, string>;
     }
-  | { type: "left"; roomId: string; clientId: Id }
+  | { type: "left"; clientName: string; clientId: Id }
   | { type: "pong" }
   | { type: "broadcast"; from: User; message: string }
   | { type: "room_found"; room: Room };

@@ -22,14 +22,17 @@ export class LeaveRoomService {
       participants: roomUpdated,
     });
 
-    this.notifier.leaveParticipantRoom(
-      room.participants.find((p) => p.id === participantId)?.socketId || "",
-      roomId
-    );
+    const user = room.participants.find((p) => p.id === participantId);
+
+    if (!user) {
+      throw new AppError("participant_not_found");
+    }
+
+    this.notifier.leaveParticipantRoom(user.socketId || "", roomId);
 
     this.notifier.sendMessageToRoom(roomId, {
       type: "left",
-      roomId,
+      clientName: user.name,
       clientId: participantId,
     });
     console.log(`👋 Client ${participantId} left room ${roomId}`);
