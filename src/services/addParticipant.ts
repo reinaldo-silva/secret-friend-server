@@ -1,9 +1,11 @@
 import { INotifierProvider } from "../providers/INotifierProvider";
 import { RoomRepository } from "../repositories/RoomRepository";
+import { UserRepository } from "../repositories/UserRepository";
 import { AppError } from "../utils/AppError";
 
 export class AddParticipantService {
   constructor(
+    private userRepository: UserRepository,
     private roomRepository: RoomRepository,
     private notifier: INotifierProvider
   ) {}
@@ -37,6 +39,9 @@ export class AddParticipantService {
     }
 
     const newParticipant = { id: participantId, name: participantName };
+
+    await this.userRepository.new(newParticipant);
+
     room.participants.push(newParticipant);
 
     await this.roomRepository.updateRoom(roomId, room);

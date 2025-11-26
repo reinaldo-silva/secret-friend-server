@@ -93,6 +93,7 @@ export class SocketIoProvider implements INotifierProvider {
             const { roomId, adminId, participantId, name } = msg;
 
             const addParticipantService = new AddParticipantService(
+              userRepository,
               roomRepository,
               this
             );
