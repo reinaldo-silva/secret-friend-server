@@ -32,6 +32,8 @@ export class CreateRoomService {
 
     this.notifier.joinParticipantRoom(socketId, roomId);
 
+    this.notifier.trackUserRoom(socketId, adminId, roomId, adminName);
+
     this.notifier.send(socketId, { type: "room_created", roomId });
 
     this.notifier.send(socketId, {

@@ -14,7 +14,7 @@ export class GetRoomById {
       throw new AppError("room_not_found");
     }
 
-    const userIsParticipant = roomFound.participants.some(
+    const userIsParticipant = roomFound.participants.find(
       (p) => p.id === userId
     );
 

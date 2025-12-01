@@ -16,7 +16,7 @@ export interface Room {
 }
 
 export type IncomingMessage =
-  | { type: "connect_server"; user: User }
+  | { type: "connect_server"; user: User; roomId?: string }
   | {
       type: "create_room";
       roomId: string;
@@ -53,4 +53,5 @@ export type OutgoingMessage =
   | { type: "left"; clientName: string; clientId: Id }
   | { type: "pong" }
   | { type: "broadcast"; from: User; message: string }
-  | { type: "room_found"; room: Room };
+  | { type: "room_found"; room: Room }
+  | { type: "users_status"; users: User[] };

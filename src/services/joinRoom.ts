@@ -1,6 +1,7 @@
 import { INotifierProvider } from "../providers/INotifierProvider";
 import { RoomRepository } from "../repositories/RoomRepository";
 import { AppError } from "../utils/AppError";
+import { UpdateUserPresenceService } from "./updateUserPresence";
 
 export class JoinRoomService {
   constructor(
@@ -44,12 +45,19 @@ export class JoinRoomService {
 
     this.notifier.joinParticipantRoom(socketId, roomId);
 
+    // Track user in room for disconnect handling and in-memory presence
+    this.notifier.trackUserRoom(socketId, clientId, roomId, name);
+
     // Envia os participantes atuais para o novo usuário
     this.notifier.send(socketId, {
       type: "joined",
       roomId,
       participants: room.participants,
     });
+
+    // Notifica presença para toda a sala
+    const presenceService = new UpdateUserPresenceService(this.notifier);
+    await presenceService.notifyUserOnline(roomId, clientId);
 
     console.log(`👤 ${name} joined room ${roomId}`);
   }

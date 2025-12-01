@@ -8,6 +8,7 @@ import { ConnectNotification } from "../services/connectNotification";
 import { CreateRoomService } from "../services/createRoom";
 import { GetResultByToken } from "../services/getResultByToken";
 import { GetRoomById } from "../services/getRoomById";
+import { HandleDisconnectService } from "../services/handleDisconnect";
 import { JoinRoomService } from "../services/joinRoom";
 import { LeaveRoomService } from "../services/leaveRoom";
 import { StarDrawService } from "../services/startDraw";
@@ -17,6 +18,10 @@ import { INotifierProvider } from "./INotifierProvider";
 
 export class SocketIoProvider implements INotifierProvider {
   client: Server;
+  private socketUserMap: Map<
+    string,
+    { userId: string; userName?: string; room: string }
+  > = new Map();
 
   constructor(
     server: http.Server,
@@ -33,8 +38,14 @@ export class SocketIoProvider implements INotifierProvider {
     io.on("connection", (socket: Socket) => {
       console.log("✅ Client connected:", socket.id);
 
-      socket.on("disconnect", () => {
+      socket.on("disconnect", async () => {
         console.log("❌ Client disconnected:", socket.id);
+
+        const info = this.socketUserMap.get(socket.id);
+
+        const handleDisconnect = new HandleDisconnectService(this);
+
+        await handleDisconnect.handle(socket.id, info?.userId, info?.room);
       });
 
       socket.on("message", async (msg: IncomingMessage) => {
@@ -46,11 +57,15 @@ export class SocketIoProvider implements INotifierProvider {
           }
 
           if (msg.type === "connect_server") {
-            const { user } = msg;
+            const { user, roomId } = msg;
 
-            const connectNotification = new ConnectNotification(userRepository);
+            const connectNotification = new ConnectNotification(
+              userRepository,
+              roomRepository,
+              this
+            );
 
-            await connectNotification.handler(user, socket.id);
+            await connectNotification.handler(user, socket.id, roomId);
 
             return;
           }
@@ -220,6 +235,42 @@ export class SocketIoProvider implements INotifierProvider {
       return;
     }
     socket.join(roomId);
+  }
+
+  trackUserRoom(
+    socketId: string,
+    userId: string,
+    roomId: string,
+    userName?: string
+  ) {
+    if (!this.socketUserMap.has(socketId)) {
+      this.socketUserMap.set(socketId, { userId, userName, room: roomId });
+    }
+    const info = this.socketUserMap.get(socketId)!;
+    info.userId = userId;
+    if (userName) {
+      info.userName = userName;
+    }
+    info.room = roomId;
+  }
+
+  untrackUserRoom(socketId: string) {
+    const info = this.socketUserMap.get(socketId);
+    if (!info) {
+      return;
+    }
+    this.socketUserMap.delete(socketId);
+  }
+
+  getOnlineUsersInRoom(roomId: string) {
+    const result: { id: string; name?: string }[] = [];
+
+    for (const [, info] of this.socketUserMap) {
+      if (info.room === roomId) {
+        result.push({ id: info.userId, name: info.userName });
+      }
+    }
+    return result;
   }
 
   private getSocketById(socketId: string | undefined): Socket | null {
