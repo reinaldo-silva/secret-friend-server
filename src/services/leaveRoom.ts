@@ -1,7 +1,6 @@
 import { INotifierProvider } from "../providers/INotifierProvider";
 import { RoomRepository } from "../repositories/RoomRepository";
 import { AppError } from "../utils/AppError";
-import { UpdateUserPresenceService } from "./updateUserPresence";
 
 export class LeaveRoomService {
   constructor(
@@ -38,10 +37,6 @@ export class LeaveRoomService {
     });
 
     this.notifier.untrackUserRoom(user.socketId || "");
-
-    // Notifica presença para toda a sala
-    const presenceService = new UpdateUserPresenceService(this.notifier);
-    await presenceService.notifyUserOffline(roomId, participantId);
 
     console.log(`👋 Client ${participantId} left room ${roomId}`);
   }

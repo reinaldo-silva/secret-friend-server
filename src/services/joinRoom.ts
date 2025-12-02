@@ -1,7 +1,6 @@
 import { INotifierProvider } from "../providers/INotifierProvider";
 import { RoomRepository } from "../repositories/RoomRepository";
 import { AppError } from "../utils/AppError";
-import { UpdateUserPresenceService } from "./updateUserPresence";
 
 export class JoinRoomService {
   constructor(
@@ -54,10 +53,6 @@ export class JoinRoomService {
       roomId,
       participants: room.participants,
     });
-
-    // Notifica presença para toda a sala
-    const presenceService = new UpdateUserPresenceService(this.notifier);
-    await presenceService.notifyUserOnline(roomId, clientId);
 
     console.log(`👤 ${name} joined room ${roomId}`);
   }

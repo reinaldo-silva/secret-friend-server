@@ -252,6 +252,8 @@ export class SocketIoProvider implements INotifierProvider {
       info.userName = userName;
     }
     info.room = roomId;
+
+    this.notifyUserStatusChange(roomId);
   }
 
   untrackUserRoom(socketId: string) {
@@ -260,6 +262,7 @@ export class SocketIoProvider implements INotifierProvider {
       return;
     }
     this.socketUserMap.delete(socketId);
+    this.notifyUserStatusChange(info.room);
   }
 
   getOnlineUsersInRoom(roomId: string) {
@@ -271,6 +274,16 @@ export class SocketIoProvider implements INotifierProvider {
       }
     }
     return result;
+  }
+
+  private notifyUserStatusChange(roomId: string) {
+    const online = this.getOnlineUsersInRoom(roomId);
+    const onlineUsers = online.map((u) => ({ id: u.id, name: u.name || "" }));
+
+    this.sendMessageToRoom(roomId, {
+      type: "users_status",
+      users: onlineUsers,
+    });
   }
 
   private getSocketById(socketId: string | undefined): Socket | null {

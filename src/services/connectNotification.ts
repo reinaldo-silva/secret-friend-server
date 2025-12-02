@@ -2,7 +2,6 @@ import { INotifierProvider } from "../providers/INotifierProvider";
 import { RoomRepository } from "../repositories/RoomRepository";
 import { UserRepository } from "../repositories/UserRepository";
 import { User } from "../types";
-import { UpdateUserPresenceService } from "./updateUserPresence";
 
 export class ConnectNotification {
   constructor(
@@ -25,10 +24,6 @@ export class ConnectNotification {
 
         // Track user in room for presence
         this.notifier.trackUserRoom(socketId, user.id, roomFound.id, user.name);
-
-        // Notifica presença para toda a sala
-        const presenceService = new UpdateUserPresenceService(this.notifier);
-        await presenceService.notifyUserOnline(roomFound.id, user.id);
       }
 
       return;
@@ -43,10 +38,6 @@ export class ConnectNotification {
 
       // Track user in room for presence
       this.notifier.trackUserRoom(socketId, user.id, roomFound.id, user.name);
-
-      // Notifica presença para toda a sala
-      const presenceService = new UpdateUserPresenceService(this.notifier);
-      await presenceService.notifyUserOnline(roomFound.id, user.id);
     }
   }
 }
